@@ -12,7 +12,6 @@ $ docker-compose exec rust bash
 
 # コンテナ内
 $ cargo run
-$ cargo init
 ```
 
 ## Note
