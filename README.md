@@ -2,6 +2,19 @@
 
 > プレイヤー毎のコントローラー状態を管理
 
+## Usage
+
+▼ Mac ユーザー向け
+```sh
+# ローカル内
+$ cd docker; docker-compose up -d
+$ docker-compose exec rust bash
+
+# コンテナ内
+$ cargo run
+$ cargo init
+```
+
 ## Note
 
 ## データの持ち方
