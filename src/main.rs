@@ -14,7 +14,7 @@ fn main() {
     let socket = server.bind();
 
     loop {
-        let client = server.reseive(socket.try_clone().expect("failed to clone socket"));
+        let client = server.receive(socket.try_clone().expect("failed to clone socket"));
         println!("{:?} from Client, usize: {:?}, buf: {:?}", client.ipaddr, client.size, client.buf);
 
         thread::spawn(move || {
@@ -44,7 +44,7 @@ fn mock_data_server() {
         let socket = server.bind();
 
         loop {
-            let client = server.reseive(socket.try_clone().expect("failed to clone socket"));
+            let client = server.receive(socket.try_clone().expect("failed to clone socket"));
             println!("{:?} from Control Server, usize: {:?}, buf: {:?}", client.ipaddr, client.size, client.buf);
         }
     });
