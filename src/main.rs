@@ -1,12 +1,9 @@
-use std::net::UdpSocket;
 use std::net::SocketAddr;
 use std::thread;
 
 mod opt;
 
 fn main() {
-    mock_data_server();
-
     let mut server = opt::Server {
         ipaddr: SocketAddr::from(([127, 0, 0, 1], 34254)),
         buf: [0; 10]
@@ -29,23 +26,27 @@ fn main() {
 }
 
 #[test]
-fn mock_client() {
-    let socket = UdpSocket::bind("127.0.0.1:12345").expect("couldn't bind to address");
-    socket.send_to(&[1, 2, 5], "127.0.0.1:34254").expect("couldn't send data");
-}
-
-// #[test]
 fn mock_data_server() {
-    thread::spawn(|| {
+    let handle = thread::spawn(|| {
+        // 仮のデータサーバを立てる
         let mut server = opt::Server {
             ipaddr: SocketAddr::from(([127, 0, 0, 1], 20202)),
             buf: [0; 10]
         };
         let socket = server.bind();
 
+        // 仮のクライアントからデータを送信
+        let client = std::net::UdpSocket::bind("127.0.0.1:12345").expect("couldn't bind to address");
+        client.send_to(&[1, 2, 5], "127.0.0.1:34254").expect("couldn't send data");
+        println!("Send from Client");
+
+        // コントロールサーバーからの受信
         loop {
             let client = server.receive(socket.try_clone().expect("failed to clone socket"));
             println!("{:?} from Control Server, usize: {:?}, buf: {:?}", client.ipaddr, client.size, client.buf);
         }
     });
+
+    assert!(handle.join().is_ok());
 }
+
