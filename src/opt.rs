@@ -53,3 +53,18 @@ impl ControlInfo {
         return byte.to_vec();
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Attack {
+    pub character_id: String,
+    pub action: String,
+    pub pyload: String
+}
+
+impl Attack {
+    pub fn serialize(attack: Attack) -> Vec<u8> {
+        let json = serde_json::to_string(&attack).unwrap();
+        let byte = json.as_bytes();
+        return byte.to_vec();
+    }
+}
