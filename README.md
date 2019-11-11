@@ -7,8 +7,8 @@
 ▼ Mac ユーザー向け
 ```sh
 # ローカル内
-$ cd docker; docker-compose up -d
-$ docker-compose exec rust bash
+$ cd docker; make up
+$ make bash
 
 # コンテナ内
 $ cargo run
