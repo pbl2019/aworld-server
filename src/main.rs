@@ -39,9 +39,9 @@ impl std::iter::IntoIterator for Controller {
         vec![
             ("login".to_owned(), self.login),
             ("forward".to_owned(), self.up),
-            ("down".to_owned(), self.down),
-            ("right".to_owned(), self.right),
-            ("left".to_owned(), self.left),
+            ("backward".to_owned(), self.down),
+            ("turn_right".to_owned(), self.right),
+            ("turn_left".to_owned(), self.left),
         ]
         .into_iter()
     }
@@ -76,7 +76,7 @@ fn main() {
                         r#"{{
                     "addr": "{}",
                     "kind": "{}",
-                    "payload": {{ "speed": 1.0 }}
+                    "payload": {{ "speed": 1.0, "angle": 0.1 }}
                 }}"#,
                         ip, kind
                     );
