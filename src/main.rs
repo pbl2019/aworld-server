@@ -10,8 +10,8 @@ mod opt;
 
 fn main() {
     let mut server = opt::Server {
-        ipaddr: SocketAddr::from(([127, 0, 0, 1], 34254)),
-        buf: [0; 1000]
+        ipaddr: SocketAddr::from(([127, 0, 0, 1], 34255)),
+        buf: [0; 4096]
     };
     let socket = server.bind();
 
@@ -23,12 +23,12 @@ fn main() {
 
         thread::spawn(move || {
             let mut send_server = opt::Server {
-                ipaddr: SocketAddr::from(([127, 0, 0, 1], 30000)),
-                buf: [0; 1000]
+                ipaddr: SocketAddr::from(([127, 0, 0, 1], 34250)),
+                buf: [0; 4096]
             };
             let send_socket = send_server.bind();
             let byte = opt::ControlInfo::serialize(control_info);
-            send_socket.send_to(&byte, SocketAddr::from(([127, 0, 0, 1], 20202))).expect("couldn't send data");
+            send_socket.send_to(&byte, SocketAddr::from(([127, 0, 0, 1], 34254))).expect("couldn't send data");
         });
     }
 }
@@ -39,7 +39,7 @@ fn mock_client_and_mock_data_server() {
         // 仮のデータサーバを立てる
         let mut server = opt::Server {
             ipaddr: SocketAddr::from(([127, 0, 0, 1], 20202)),
-            buf: [0; 1000]
+            buf: [0; 4096]
         };
         let socket = server.bind();
 

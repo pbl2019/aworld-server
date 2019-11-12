@@ -1,10 +1,11 @@
 use std::net::UdpSocket;
 use std::net::SocketAddr;
 use std::str;
+use serde_json::value::Value;
 
 pub struct Server {
     pub ipaddr: SocketAddr,
-    pub buf: [u8; 1000]
+    pub buf: [u8; 4096]
 }
 
 impl Server {
@@ -13,6 +14,7 @@ impl Server {
     }
 
     pub fn receive(&mut self, socket: UdpSocket) -> Client {
+        self.buf = [0; 4096];
         let (number_of_bytes, src_addr) = socket.recv_from(&mut self.buf).expect("Didn't receive data");
 
         return Client {
@@ -34,12 +36,13 @@ pub struct ControlInfo {
     pub character_id: String,
     pub button_name: String,
     pub status: bool,
-    pub optional: String
+    pub optional: Value
 }
 
 impl ControlInfo {
     pub fn deserialize(buf: Vec<u8>) -> ControlInfo {
         let control_info_str = str::from_utf8(&buf).expect("Found invalid UTF-8");
+        println!("{}", control_info_str);
         // JSON has non-whitespace trailing characters after the value.
         // https://stackoverflow.com/questions/56817010/why-do-i-always-get-a-trailing-characters-error-when-trying-to-parse-data-with
         let control_info_trimed_str = control_info_str.trim_matches(char::from(0));
