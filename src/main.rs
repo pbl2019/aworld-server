@@ -3,6 +3,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
+use serde_json::value::Value;
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc, RwLock};
@@ -10,40 +11,92 @@ use std::thread;
 
 mod opt;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
+pub struct Button {
+    pub status: bool,
+    pub optional: Value,
+}
+
+impl Button {
+    fn new() -> Self {
+        Self {
+            status: false,
+            optional: Value::Null,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Controller {
-    pub login: bool,
-    pub up: bool,
-    pub down: bool,
-    pub right: bool,
-    pub left: bool,
+    pub login: Button,
+    pub up: Button,
+    pub down: Button,
+    pub right: Button,
+    pub left: Button,
 }
 
 impl Controller {
     fn new() -> Self {
         Self {
-            login: false,
-            up: false,
-            down: false,
-            right: false,
-            left: false,
+            login: Button::new(),
+            up: Button::new(),
+            down: Button::new(),
+            right: Button::new(),
+            left: Button::new(),
         }
     }
 }
 
-impl std::iter::IntoIterator for Controller {
-    type Item = (String, bool);
-    type IntoIter = ::std::vec::IntoIter<Self::Item>;
+impl<'a> std::iter::IntoIterator for &'a Controller {
+    type Item = (String, bool, Value);
+    type IntoIter = ControllerIntoIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        vec![
-            ("login".to_owned(), self.login),
-            ("forward".to_owned(), self.up),
-            ("backward".to_owned(), self.down),
-            ("turn_right".to_owned(), self.right),
-            ("turn_left".to_owned(), self.left),
-        ]
-        .into_iter()
+        ControllerIntoIterator {
+            controller: self,
+            index: 0,
+        }
+    }
+}
+
+pub struct ControllerIntoIterator<'a> {
+    controller: &'a Controller,
+    index: usize,
+}
+
+impl<'a> std::iter::Iterator for ControllerIntoIterator<'a> {
+    type Item = (String, bool, Value);
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = match self.index {
+            0 => (
+                "login".to_owned(),
+                self.controller.login.status,
+                self.controller.login.optional.clone(),
+            ),
+            1 => (
+                "forward".to_owned(),
+                self.controller.up.status,
+                self.controller.up.optional.clone(),
+            ),
+            2 => (
+                "backward".to_owned(),
+                self.controller.down.status,
+                self.controller.down.optional.clone(),
+            ),
+            3 => (
+                "turn_right".to_owned(),
+                self.controller.right.status,
+                self.controller.right.optional.clone(),
+            ),
+            4 => (
+                "turn_left".to_owned(),
+                self.controller.left.status,
+                self.controller.left.optional.clone(),
+            ),
+            _ => return None,
+        };
+        self.index += 1;
+        Some(result)
     }
 }
 
@@ -53,7 +106,7 @@ fn main() {
         buf: [0; 4096],
     };
     let socket = server.bind();
-    let controllers: Arc<RwLock<HashMap<String, Arc<RwLock<Controller>>>>> =
+    let controllers: Arc<RwLock<HashMap<(String, i64), Arc<RwLock<Controller>>>>> =
         Arc::new(RwLock::new(HashMap::new()));
     let controllers2 = controllers.clone();
 
@@ -65,25 +118,31 @@ fn main() {
 
     thread::spawn(move || loop {
         let controllers_lock = controllers2.read().unwrap();
-        for (ip, controller) in controllers_lock.iter() {
-            let mut lock = controller.write().unwrap();
-            for (kind, should_send) in lock.into_iter() {
-                if should_send {
-                    if kind == "login" {
-                        lock.login = false;
-                    }
-                    let buf = format!(
-                        r#"{{
+        for ((ip, salt), controller) in controllers_lock.iter() {
+            let mut is_login = false;
+            {
+                let lock = controller.read().unwrap();
+                for (kind, should_send, optional) in lock.into_iter() {
+                    if should_send {
+                        if kind == "login" {
+                            is_login = true;
+                        }
+                        let buf = format!(
+                            r#"{{
+                    "salt": {},
                     "addr": "{}",
                     "kind": "{}",
-                    "payload": {{ "speed": 1.0, "angle": 0.1 }}
-                }}"#,
-                        ip, kind
-                    );
-                    send_socket
-                        .send_to(buf.as_bytes(), SocketAddr::from(([127, 0, 0, 1], 34254)))
-                        .expect("couldn't send data");
+                    "payload": {}}}"#,
+                            salt, ip, kind, optional
+                        );
+                        send_socket
+                            .send_to(buf.as_bytes(), SocketAddr::from(([127, 0, 0, 1], 34254)))
+                            .expect("couldn't send data");
+                    }
                 }
+            }
+            if is_login {
+                controller.write().unwrap().login.status = false;
             }
         }
         thread::sleep_ms(5);
@@ -98,33 +157,49 @@ fn main() {
         };
         let control_info = opt::ControlInfo::deserialize(client.buf);
         println!("ControlInfo: {:?}", control_info);
-        let ip_is_not_found = !controllers.read().unwrap().contains_key(&ip);
+        let salt = control_info.salt;
+        let ip_is_not_found = !controllers
+            .read()
+            .unwrap()
+            .contains_key(&(ip.clone(), salt));
         if ip_is_not_found {
             controllers
                 .write()
                 .unwrap()
-                .insert(ip.clone(), Arc::new(RwLock::new(Controller::new())));
+                .insert((ip.clone(), salt), Arc::new(RwLock::new(Controller::new())));
         }
-        if let Some(controller) = controllers.read().unwrap().get(&ip) {
+        println!("{}", ip_is_not_found);
+        if let Some(controller) = controllers.read().unwrap().get(&(ip, salt)) {
             match &*control_info.button_name {
                 "login" => {
-                    controller.write().unwrap().login = control_info.status;
+                    let mut lock = controller.write().unwrap();
+                    lock.login.status = control_info.status;
+                    lock.login.optional = control_info.optional;
                 }
                 "up" => {
-                    controller.write().unwrap().up = control_info.status;
+                    let mut lock = controller.write().unwrap();
+                    lock.up.status = control_info.status;
+                    lock.up.optional = control_info.optional;
                 }
                 "down" => {
-                    controller.write().unwrap().down = control_info.status;
+                    let mut lock = controller.write().unwrap();
+                    lock.down.status = control_info.status;
+                    lock.down.optional = control_info.optional;
                 }
                 "left" => {
-                    controller.write().unwrap().left = control_info.status;
+                    let mut lock = controller.write().unwrap();
+                    lock.left.status = control_info.status;
+                    lock.left.optional = control_info.optional;
                 }
                 "right" => {
-                    controller.write().unwrap().right = control_info.status;
+                    let mut lock = controller.write().unwrap();
+                    lock.right.status = control_info.status;
+                    lock.right.optional = control_info.optional;
                 }
                 _ => {}
             }
         }
+        println!("update");
     }
 }
 

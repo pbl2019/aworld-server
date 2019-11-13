@@ -1,11 +1,11 @@
-use std::net::UdpSocket;
-use std::net::SocketAddr;
-use std::str;
 use serde_json::value::Value;
+use std::net::SocketAddr;
+use std::net::UdpSocket;
+use std::str;
 
 pub struct Server {
     pub ipaddr: SocketAddr,
-    pub buf: [u8; 4096]
+    pub buf: [u8; 4096],
 }
 
 impl Server {
@@ -15,28 +15,31 @@ impl Server {
 
     pub fn receive(&mut self, socket: UdpSocket) -> Client {
         self.buf = [0; 4096];
-        let (number_of_bytes, src_addr) = socket.recv_from(&mut self.buf).expect("Didn't receive data");
+        let (number_of_bytes, src_addr) = socket
+            .recv_from(&mut self.buf)
+            .expect("Didn't receive data");
 
         return Client {
             ipaddr: src_addr,
             size: number_of_bytes,
-            buf: self.buf.to_vec()
-        }
+            buf: self.buf.to_vec(),
+        };
     }
 }
 
 pub struct Client {
     pub ipaddr: SocketAddr,
     pub size: usize,
-    pub buf: Vec<u8>
+    pub buf: Vec<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ControlInfo {
+    pub salt: i64,
     pub character_id: String,
     pub button_name: String,
     pub status: bool,
-    pub optional: Value
+    pub optional: Value,
 }
 
 impl ControlInfo {
@@ -61,7 +64,7 @@ impl ControlInfo {
 pub struct Attack {
     pub character_id: String,
     pub action: String,
-    pub pyload: String
+    pub pyload: String,
 }
 
 impl Attack {
