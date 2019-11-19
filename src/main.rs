@@ -1,120 +1,17 @@
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-
-use serde_json::value::Value;
 use std::collections::HashMap;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-mod opt;
-
-#[derive(Debug, Clone)]
-pub struct Button {
-    pub status: bool,
-    pub optional: Value,
-}
-
-impl Button {
-    fn new() -> Self {
-        Self {
-            status: false,
-            optional: Value::Null,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Controller {
-    pub login: Button,
-    pub up: Button,
-    pub down: Button,
-    pub right: Button,
-    pub left: Button,
-}
-
-impl Controller {
-    fn new() -> Self {
-        Self {
-            login: Button::new(),
-            up: Button::new(),
-            down: Button::new(),
-            right: Button::new(),
-            left: Button::new(),
-        }
-    }
-}
-
-impl<'a> std::iter::IntoIterator for &'a Controller {
-    type Item = (String, bool, Value);
-    type IntoIter = ControllerIntoIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        ControllerIntoIterator {
-            controller: self,
-            index: 0,
-        }
-    }
-}
-
-pub struct ControllerIntoIterator<'a> {
-    controller: &'a Controller,
-    index: usize,
-}
-
-impl<'a> std::iter::Iterator for ControllerIntoIterator<'a> {
-    type Item = (String, bool, Value);
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.index {
-            0 => (
-                "login".to_owned(),
-                self.controller.login.status,
-                self.controller.login.optional.clone(),
-            ),
-            1 => (
-                "forward".to_owned(),
-                self.controller.up.status,
-                self.controller.up.optional.clone(),
-            ),
-            2 => (
-                "backward".to_owned(),
-                self.controller.down.status,
-                self.controller.down.optional.clone(),
-            ),
-            3 => (
-                "turn_right".to_owned(),
-                self.controller.right.status,
-                self.controller.right.optional.clone(),
-            ),
-            4 => (
-                "turn_left".to_owned(),
-                self.controller.left.status,
-                self.controller.left.optional.clone(),
-            ),
-            _ => return None,
-        };
-        self.index += 1;
-        Some(result)
-    }
-}
+use aworld_server::models::controller::Controller;
+use aworld_server::models::server::{Server, ControlInfo};
 
 fn main() {
-    let mut server = opt::Server {
-        ipaddr: SocketAddr::from(([127, 0, 0, 1], 34255)),
-        buf: [0; 4096],
-    };
-    let socket = server.bind();
+    let mut receiving_server = Server::new("127.0.0.1:34255", [0; 4096]);
+    let mut sending_server = Server::new("127.0.0.1:34250", [0; 4096]);
+
     let controllers: Arc<RwLock<HashMap<(String, i64), Arc<RwLock<Controller>>>>> =
         Arc::new(RwLock::new(HashMap::new()));
     let controllers2 = controllers.clone();
-
-    let mut send_server = opt::Server {
-        ipaddr: SocketAddr::from(([127, 0, 0, 1], 34250)),
-        buf: [0; 4096],
-    };
-    let send_socket = send_server.bind();
 
     thread::spawn(move || loop {
         let controllers_lock = controllers2.read().unwrap();
@@ -135,9 +32,7 @@ fn main() {
                     "payload": {}}}"#,
                             salt, ip, kind, optional
                         );
-                        send_socket
-                            .send_to(buf.as_bytes(), SocketAddr::from(([127, 0, 0, 1], 34254)))
-                            .expect("couldn't send data");
+                        sending_server.send("127.0.0.1:34254", buf)
                     }
                 }
             }
@@ -149,13 +44,10 @@ fn main() {
     });
 
     loop {
-        let client = server.receive(socket.try_clone().expect("failed to clone socket"));
+        let client = receiving_server.receive(receiving_server.socket.try_clone().expect("failed to clone socket"));
         println!("{:?} from Client, usize: {:?}", client.ipaddr, client.size);
-        let ip = match client.ipaddr {
-            SocketAddr::V4(v4) => v4.to_string(),
-            SocketAddr::V6(v6) => v6.to_string(),
-        };
-        let control_info = opt::ControlInfo::deserialize(client.buf);
+        let ip = client.ip_str();
+        let control_info = ControlInfo::deserialize(client.buf);
         println!("ControlInfo: {:?}", control_info);
         let salt = control_info.salt;
         let ip_is_not_found = !controllers
@@ -207,22 +99,19 @@ fn main() {
 fn mock_client_and_mock_data_server() {
     let handle = thread::spawn(|| {
         // 仮のデータサーバを立てる
-        let mut server = opt::Server {
-            ipaddr: SocketAddr::from(([127, 0, 0, 1], 20202)),
-            buf: [0; 4096],
-        };
-        let socket = server.bind();
+        let mut server = Server::new("127.0.0.1:34255", [0; 4096]);
 
         // 仮のクライアントからデータを送信
         let client =
             std::net::UdpSocket::bind("127.0.0.1:12345").expect("couldn't bind to address");
-        let control_info = opt::ControlInfo {
+        let control_info = ControlInfo {
+            salt: 123456789,
             character_id: "aworld client".to_string(),
             button_name: "enter".to_string(),
             status: true,
-            optional: "hoo,bar".to_string(),
+            optional: serde_json::Value::String("hoo,bar".to_string()),
         };
-        let byte = opt::ControlInfo::serialize(control_info);
+        let byte = ControlInfo::serialize(control_info);
         client
             .send_to(&byte, "127.0.0.1:34254")
             .expect("couldn't send data");
@@ -230,7 +119,7 @@ fn mock_client_and_mock_data_server() {
 
         // コントロールサーバーからの受信
         loop {
-            let client = server.receive(socket.try_clone().expect("failed to clone socket"));
+            let client = server.receive(server.socket.try_clone().expect("failed to clone socket"));
             println!(
                 "{:?} from Control Server, usize: {:?}, buf: {:?}",
                 client.ipaddr, client.size, client.buf

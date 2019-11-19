@@ -2,7 +2,8 @@
 /target
 **/*.rs.bk
 
-
+# idea
+.idea
 
 #### Windows OS
 # Windows thumbnail cache files

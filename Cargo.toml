@@ -1,5 +1,5 @@
 [package]
-name = "src"
+name = "aworld-server"
 version = "0.1.0"
 authors = ["userName"]
 edition = "2018"
