@@ -1,14 +1,29 @@
 use serde_json::value::Value;
+
 use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
 use std::net::UdpSocket;
 use std::str;
 
 pub struct Server {
     pub ipaddr: SocketAddr,
     pub buf: [u8; 4096],
+    pub socket: UdpSocket
 }
 
 impl Server {
+    pub fn new(ip: &str, buf: [u8; 4096]) -> Server {
+        let socket_addr: SocketAddr = ip
+            .parse()
+            .expect("Unable to parse socket address");
+        let ipaddr = SocketAddr::from(socket_addr);
+        return Server {
+            ipaddr,
+            buf,
+            socket: UdpSocket::bind(ipaddr).expect("couldn't bind to address"),
+        }
+    }
+
     pub fn bind(&mut self) -> UdpSocket {
         return UdpSocket::bind(self.ipaddr).expect("couldn't bind to address");
     }
@@ -25,12 +40,31 @@ impl Server {
             buf: self.buf.to_vec(),
         };
     }
+
+    pub fn send(&mut self, ip: &str, buf: String) {
+        let socket_addr: SocketAddr = ip
+            .parse()
+            .expect("Unable to parse socket address");
+        let ipaddr = SocketAddr::from(socket_addr);
+        self.socket
+            .send_to(buf.as_bytes(), ipaddr)
+            .expect("couldn't send data");
+    }
 }
 
 pub struct Client {
     pub ipaddr: SocketAddr,
     pub size: usize,
     pub buf: Vec<u8>,
+}
+
+impl Client {
+    pub fn ip_str(&self) -> String {
+        return match self.ipaddr {
+            SocketAddr::V4(v4) => v4.to_string(),
+            SocketAddr::V6(v6) => v6.to_string(),
+        };
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,7 +98,7 @@ impl ControlInfo {
 pub struct Attack {
     pub character_id: String,
     pub action: String,
-    pub pyload: String,
+    pub payload: String,
 }
 
 impl Attack {
