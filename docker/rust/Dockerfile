@@ -1,5 +1,4 @@
 FROM rust:latest
- 
-ENV USER=userName
+
 WORKDIR /src
-RUN apt-get update
+RUN apt-get update && apt-get install -y netcat lsof

@@ -8,12 +8,17 @@
 ```sh
 # ローカル内
 $ cd docker; make up
+
+# コンテナ内での作業
 $ make bash
 
 # コンテナ内
 $ cargo run
 # ビルド版
 $ cargo run --release
+
+# docker-compose.yamlでcommandを指定した場合のlogをみるコマンド
+$ docker container logs -f aworld-server-rust
 ```
 
 ## port
@@ -53,9 +58,9 @@ TradeEnd
 ## ncコマンドによるテスト
 
 ```sh
-apt-get update && apt-get install -y nc
+apt-get update && apt-get install -y netcat
 nc -u localhost 34254
-{"addr": "firefox", "kind": "forward", "payload": {"speed": 10}}
+{"salt": 10,"addr": "firefox", "kind": "forward", "payload": {"speed": 10}}
 ```
 
 ## portが使われてるよって言われる場合
@@ -70,4 +75,13 @@ aworld-se  12 root    5u  IPv4  19049      0t0  UDP localhost:34255
 
 apt-get update && apt-get install -y kill
 kill -9 hogehogepid # ここのhogehogepidは、lsof -iで確認したPIDを入れる
+```
+
+## packet max size
+
+
+```sh
+# linux
+echo "net.core.wmem_max=16777216" >> etc/sysctl.c
+echo "net.core.rmem_max=16777216" >> etc/sysctl.c
 ```

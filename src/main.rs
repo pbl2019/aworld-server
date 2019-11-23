@@ -6,12 +6,16 @@ use aworld_server::models::controller::Controller;
 use aworld_server::models::server::{Server, ControlInfo};
 
 fn main() {
-    let mut receiving_server = Server::new("127.0.0.1:34255", [0; 4096]);
-    let mut sending_server = Server::new("127.0.0.1:34250", [0; 4096]);
+    let mut receiving_server = Server::new("0.0.0.0:34255", [0; 4096]);
+    let mut sending_server = Server::new("0.0.0.0:34250", [0; 4096]);
 
     let controllers: Arc<RwLock<HashMap<(String, i64), Arc<RwLock<Controller>>>>> =
         Arc::new(RwLock::new(HashMap::new()));
     let controllers2 = controllers.clone();
+
+    println!("\n****************************************************************************");
+    println!("start aworld server: {:?}", receiving_server.ipaddr);
+    println!("****************************************************************************\n");
 
     thread::spawn(move || loop {
         let controllers_lock = controllers2.read().unwrap();
@@ -32,7 +36,7 @@ fn main() {
                     "payload": {}}}"#,
                             salt, ip, kind, optional
                         );
-                        sending_server.send("127.0.0.1:34254", buf)
+                        sending_server.send("172.16.238.10:34254", buf)
                     }
                 }
             }

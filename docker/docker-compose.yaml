@@ -3,13 +3,21 @@ version: "3.6"
 services:
   rust:
     build: ./rust
+    container_name: aworld-server-rust
     tty: true
     volumes:
       - ../:/src
     ports:
-      - 8888:80
-      - 34255:34255
-      - 34254:34254
-    expose:
-      - 34255
-      - 34254
+      - "34255:34255/udp"
+    networks:
+      app_net:
+        ipv4_address: 172.16.238.12
+    # command: cargo run --release
+
+networks:
+  app_net:
+    name: back_end_net
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.238.0/24"

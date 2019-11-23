@@ -1,7 +1,6 @@
 use serde_json::value::Value;
 
 use std::net::SocketAddr;
-use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
 use std::net::UdpSocket;
 use std::str;
 
@@ -22,10 +21,6 @@ impl Server {
             buf,
             socket: UdpSocket::bind(ipaddr).expect("couldn't bind to address"),
         }
-    }
-
-    pub fn bind(&mut self) -> UdpSocket {
-        return UdpSocket::bind(self.ipaddr).expect("couldn't bind to address");
     }
 
     pub fn receive(&mut self, socket: UdpSocket) -> Client {
