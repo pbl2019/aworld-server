@@ -88,6 +88,11 @@ fn main() {
                     lock.right.status = control_info.status;
                     lock.right.optional = control_info.optional;
                 }
+                "spacebar" => {
+                    let mut lock = controller.write().unwrap();
+                    lock.spacebar.status = control_info.status;
+                    lock.spacebar.optional = control_info.optional;
+                }
                 _ => {}
             }
         }

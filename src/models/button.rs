@@ -20,3 +20,4 @@ pub const UP: &str = "up";
 pub const DOWN: &str = "down";
 pub const LEFT: &str = "left";
 pub const RIGHT: &str = "right";
+pub const SPACEBAR: &str = "spacebar";
