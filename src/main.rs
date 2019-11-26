@@ -33,6 +33,7 @@ pub struct Controller {
     pub down: Button,
     pub right: Button,
     pub left: Button,
+    pub spacebar: Button
 }
 
 impl Controller {
@@ -43,6 +44,7 @@ impl Controller {
             down: Button::new(),
             right: Button::new(),
             left: Button::new(),
+            spacebar: Button::new(),
         }
     }
 }
@@ -92,6 +94,11 @@ impl<'a> std::iter::Iterator for ControllerIntoIterator<'a> {
                 "turn_left".to_owned(),
                 self.controller.left.status,
                 self.controller.left.optional.clone(),
+            ),
+            5 => (
+                "pickup".to_owned(),
+                self.controller.spacebar.status,
+                self.controller.spacebar.optional.clone(),
             ),
             _ => return None,
         };
@@ -195,6 +202,11 @@ fn main() {
                     let mut lock = controller.write().unwrap();
                     lock.right.status = control_info.status;
                     lock.right.optional = control_info.optional;
+                }
+                "spacebar" => {
+                    let mut lock = controller.write().unwrap();
+                    lock.spacebar.status = control_info.status;
+                    lock.spacebar.optional = control_info.optional;
                 }
                 _ => {}
             }
