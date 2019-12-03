@@ -1,7 +1,7 @@
 ## flow
 > powered by [mermaid](https://mermaidjs.github.io/#/)
 
-図にしたものは[こちら](https://tinyurl.com/sz7uvx4)
+図にしたものは[こちら](https://tinyurl.com/trom6zo)
 ```mermaid
 graph TD
 A[コントロールサーバーの起動 port 34255]
