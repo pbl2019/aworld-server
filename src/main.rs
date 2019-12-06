@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 use std::thread;
 
 use aworld_server::models::controller::Controller;
-use aworld_server::models::server::{Server, ControlInfo};
+use aworld_server::models::server::{ControlInfo, Server};
 
 fn main() {
     let mut receiving_server = Server::new("127.0.0.1:34255", [0; 4096]);
@@ -44,7 +44,12 @@ fn main() {
     });
 
     loop {
-        let client = receiving_server.receive(receiving_server.socket.try_clone().expect("failed to clone socket"));
+        let client = receiving_server.receive(
+            receiving_server
+                .socket
+                .try_clone()
+                .expect("failed to clone socket"),
+        );
         println!("{:?} from Client, usize: {:?}", client.ipaddr, client.size);
         let ip = client.ip_str();
         let control_info = ControlInfo::deserialize(client.buf);
@@ -92,6 +97,11 @@ fn main() {
                     let mut lock = controller.write().unwrap();
                     lock.spacebar.status = control_info.status;
                     lock.spacebar.optional = control_info.optional;
+                }
+                "a" => {
+                    let mut lock = controller.write().unwrap();
+                    lock.a.status = control_info.status;
+                    lock.a.optional = control_info.optional;
                 }
                 _ => {}
             }

@@ -1,5 +1,5 @@
-use serde_json::value::Value;
 use super::button::Button;
+use serde_json::value::Value;
 
 #[derive(Debug, Clone)]
 pub struct Controller {
@@ -9,6 +9,7 @@ pub struct Controller {
     pub right: Button,
     pub left: Button,
     pub spacebar: Button,
+    pub a: Button,
 }
 
 impl Controller {
@@ -20,6 +21,7 @@ impl Controller {
             right: Button::new(),
             left: Button::new(),
             spacebar: Button::new(),
+            a: Button::new(),
         }
     }
 }
@@ -74,6 +76,11 @@ impl<'a> std::iter::Iterator for ControllerIntoIterator<'a> {
                 "pickup".to_owned(),
                 self.controller.spacebar.status,
                 self.controller.spacebar.optional.clone(),
+            ),
+            6 => (
+                "attack".to_owned(),
+                self.controller.a.status,
+                self.controller.a.optional.clone(),
             ),
             _ => return None,
         };
