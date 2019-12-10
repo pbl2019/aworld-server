@@ -22,3 +22,4 @@ pub const LEFT: &str = "left";
 pub const RIGHT: &str = "right";
 pub const SPACEBAR: &str = "spacebar";
 pub const A: &str = "a";
+pub const I: &str = "i";

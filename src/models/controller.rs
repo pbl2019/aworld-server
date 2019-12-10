@@ -10,6 +10,7 @@ pub struct Controller {
     pub left: Button,
     pub spacebar: Button,
     pub a: Button,
+    pub i: Button,
 }
 
 impl Controller {
@@ -22,6 +23,7 @@ impl Controller {
             left: Button::new(),
             spacebar: Button::new(),
             a: Button::new(),
+            i: Button::new(),
         }
     }
 }
@@ -81,6 +83,11 @@ impl<'a> std::iter::Iterator for ControllerIntoIterator<'a> {
                 "attack".to_owned(),
                 self.controller.a.status,
                 self.controller.a.optional.clone(),
+            ),
+            7 => (
+                "use_item".to_owned(),
+                self.controller.i.status,
+                self.controller.i.optional.clone(),
             ),
             _ => return None,
         };

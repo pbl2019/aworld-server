@@ -103,6 +103,11 @@ fn main() {
                     lock.a.status = control_info.status;
                     lock.a.optional = control_info.optional;
                 }
+                "i" => {
+                    let mut lock = controller.write().unwrap();
+                    lock.i.status = control_info.status;
+                    lock.i.optional = control_info.optional;
+                }
                 _ => {}
             }
         }
